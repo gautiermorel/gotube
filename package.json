@@ -1,0 +1,13 @@
+{
+  "name": "gotube",
+  "version": "0.0.1",
+  "main": "index.js",
+  "dependencies": {
+    "electron": "^1.7.10",
+    "electron-cookies": "^1.1.0",
+    "electron-prebuilt": "^1.4.13"
+  },
+  "devDependencies": {
+    "electron-packager": "^10.1.1"
+  }
+}
