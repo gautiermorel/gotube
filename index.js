@@ -1,8 +1,8 @@
 const electron = require('electron');
 const path = require('path')
+const fs = require('fs')
 
 const { app, BrowserWindow, globalShortcut } = electron;
-
 let win;
 
 const MAPPING_KEYS = [
@@ -21,10 +21,21 @@ function createWindow() {
 		titleBarStyle: 'hidden',
 		fullscreen: true,
 		icon: path.join(__dirname, 'assets/icons/gotube.png')
-	});
+	})
 
-	win.loadURL('https://www.youtube.com/tv');
-	win.on('closed', () => { win = null; });
+	win.loadURL('https://www.youtube.com/tv')
+
+	win.on('closed', () => { win = null; })
+
+	win.webContents.on('did-finish-load', () => { // Way to hide mouse pointer in app
+		fs.readFile(`${__dirname}/style.css`, 'utf-8', (error, data) => {
+			if (!error) {
+				const formatedData = data.replace(/\s{2,10}/g, ' ').trim()
+				win.webContents.insertCSS(formatedData)
+				win.webContents.sendInputEvent({ type: 'mouseMove', x: 10, y: 10 })
+			}
+		})
+	})
 }
 
 app.on('ready', createWindow);
@@ -34,7 +45,7 @@ app.on('ready', () => {
 		globalShortcut.register(rule.from, () => {
 			win.webContents.sendInputEvent({ keyCode: rule.to, type: rule.type })
 		})
-	});
+	})
 
 	// WebContent event catching
 	win.webContents.on('media-started-playing', () => {
@@ -57,8 +68,8 @@ app.on('ready', () => {
 	})
 })
 
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') { app.quit(); } });
+app.on('window-all-closed', () => { if (process.platform !== 'darwin') { app.quit(); } })
 
 app.on('will-quit', () => { globalShortcut.unregisterAll() })
 
-app.on('activate', () => { if (win === null) { createWindow(); } });
+app.on('activate', () => { if (win === null) { createWindow(); } })
