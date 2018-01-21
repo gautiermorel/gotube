@@ -5,6 +5,15 @@ const { app, BrowserWindow, globalShortcut } = electron;
 
 let win;
 
+const MAPPING_KEYS = [
+	{ from: 'MediaPlayPause', to: 'Enter', type: 'keyUp' },
+	{ from: 'MediaNextTrack', to: 'Right', type: 'keyDown' },
+	{ from: 'MediaPreviousTrack', to: 'Left', type: 'keyDown' },
+	{ from: 'VolumeMute', to: 'Backspace', type: 'keyUp' },
+	{ from: 'VolumeUp', to: 'Up', type: 'keyDown' },
+	{ from: 'VolumeDown', to: 'Down', type: 'keyDown' }
+]
+
 function createWindow() {
 	win = new BrowserWindow({
 		width: 800,
@@ -21,34 +30,35 @@ function createWindow() {
 app.on('ready', createWindow);
 
 app.on('ready', () => {
-	const retMediaPlayPause = globalShortcut.register('MediaPlayPause', () => {
-		win.webContents.sendInputEvent({ keyCode: 'Enter', type: 'keyUp' }) // Trigger "Enter" key instead of play/pause
+	MAPPING_KEYS.forEach((rule) => {
+		globalShortcut.register(rule.from, () => {
+			win.webContents.sendInputEvent({ keyCode: rule.to, type: rule.type })
+		})
+	});
+
+	// WebContent event catching
+	win.webContents.on('media-started-playing', () => {
+		if (globalShortcut.isRegistered('VolumeUp')) globalShortcut.unregister('VolumeUp')
+		if (globalShortcut.isRegistered('VolumeDown')) globalShortcut.unregister('VolumeDown')
 	})
 
-	const retMediaNextTrack = globalShortcut.register('MediaNextTrack', () => {
-		win.webContents.sendInputEvent({ keyCode: 'right', type: 'keyDown' }) // Trigger "right" key instead of play/pause
-	})
+	win.webContents.on('media-paused', () => {
+		if (!globalShortcut.isRegistered('VolumeUp')) {
+			globalShortcut.register('VolumeUp', () => {
+				win.webContents.sendInputEvent({ keyCode: 'Up', type: 'keyDown' })
+			})
+		}
 
-	const retMediaPreviousTrack = globalShortcut.register('MediaPreviousTrack', () => {
-		win.webContents.sendInputEvent({ keyCode: 'left', type: 'keyDown' }) // Trigger "left" key instead of play/pause
+		if (!globalShortcut.isRegistered('VolumeDown')) {
+			globalShortcut.register('VolumeDown', () => {
+				win.webContents.sendInputEvent({ keyCode: 'Down', type: 'keyDown' })
+			})
+		}
 	})
-
-	if (!retMediaPlayPause) { console.log('MediaPlayPause: registration failed') }
-	if (!retMediaPreviousTrack) { console.log('MediaNextTrack: registration failed') }
-	if (!retMediaNextTrack) { console.log('MediaNextTrack: registration failed') }
 })
 
-app.on('window-all-closed', () => {
-	if (process.platform !== 'darwin') { app.quit(); }
-});
+app.on('window-all-closed', () => { if (process.platform !== 'darwin') { app.quit(); } });
 
-app.on('will-quit', () => {
-	globalShortcut.unregister('MediaPlayPause')
-	globalShortcut.unregister('MediaNextTrack')
-	globalShortcut.unregister('MediaPreviousTrack')
-	globalShortcut.unregisterAll()
-})
+app.on('will-quit', () => { globalShortcut.unregisterAll() })
 
-app.on('activate', () => {
-	if (win === null) { createWindow(); }
-});
+app.on('activate', () => { if (win === null) { createWindow(); } });
